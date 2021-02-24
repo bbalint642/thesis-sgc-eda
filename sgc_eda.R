@@ -7,6 +7,8 @@ library(tidyr)
 library(viridis)     
 library(gmodels)
 library(datasets)
+library(caret)
+library(e1071)
 
 
 # ADATOK BEOLVASÁSA ----
@@ -334,3 +336,42 @@ statuszok <- plot_ly(
 ) %>%
   layout(title="Folyószámla státusza / havi bevétel")
 statuszok
+
+
+
+# MODELLEK: ----
+
+## készítsünk listát az adathalmaz 80%-ról a traininghez
+inTraining <- createDataPartition(sgc_data$housing, p=0.80, list = FALSE)
+
+## használjuk fel az előkészített 80%-ot
+training <- sgc_data[inTraining,]
+
+## használjuk a maradék 20%-ot validáláshoz
+validation <- sgc_data[-inTraining,]
+
+#--------------------------------------------------------
+## futtassunk algoritmust 10x-es cross validationhoz
+control <- trainControl(method="cv", number = 10)
+metric <- "Accuracy"
+
+### a) lineáris algoritmusok
+set.seed(7)
+
+fit.lda <- train(housing~., data=sgc_data, method="lda", metric=metric, trControl=control)
+predictions <- predict(fit.lda, validation)
+predictions
+confusionMatrix(predictions, validation$credit_risk)
+
+
+## Variable importance: ----
+
+vmiImp <- varImp(validation, scale = FALSE)
+
+
+
+
+# VÁLTOZÓK FONTOSSÁGA: ----
+
+importance <- varImp(fit.lda)
+plot(importance)
